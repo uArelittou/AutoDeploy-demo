@@ -1,16 +1,37 @@
-name : "test"
+# workflow 的名字，显示在 GitHub Actions 页面
+name: test
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main 
-  
+# 触发条件：每次 push 都跑（不限分支、不限 PR）= 方案 A
+on: [push]
+
+# 一个 workflow 由一个或多个 job 组成
+# job 之间可以并行或串行，这里只有一个 job
 jobs:
+  # job 的 ID，叫 test
   test:
+    # 跑在哪台机器上：GitHub 提供的 Ubuntu 虚拟机
+    # 为什么不用你自己的电脑：CI 要的是「干净环境 + 自动」，
+    # GitHub 的虚拟机每次都是全新的，能证明你的代码在任何机器上都能跑
     runs-on: ubuntu-latest
-    container:
-      image: docker:24.0.5
-      options: --privileged
+
+    # 一个 job 由多个 step 组成，按顺序执行
+    steps:
+      # 第1步：拉代码。actions/checkout 是 GitHub 官方写好的 Action，
+      # 作用是把仓库代码 clone 到虚拟机上。不用它，后面的步骤找不到代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 第2步：装 Python。指定 3.12 和你 Dockerfile 里的 python:3.12-slim 一致
+      # 为什么单独装：runner 默认带 Python，但版本可能不一致，显式指定避免玄学问题
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 第3步：装依赖
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 第4步：跑测试
+      - name: Run tests
+        run: python -m pytest
