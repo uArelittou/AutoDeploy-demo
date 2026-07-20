@@ -1,0 +1,16 @@
+name : "test"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main 
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: docker:24.0.5
+      options: --privileged

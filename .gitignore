@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# 测试缓存
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 环境变量/密钥（绝不提交）
+.env
+.env.local
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# Docker 运行产物
+*.log
