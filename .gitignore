@@ -31,3 +31,5 @@ Thumbs.db
 
 # Docker 运行产物
 *.log
+
+AutoDeploy规划/
