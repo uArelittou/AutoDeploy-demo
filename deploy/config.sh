@@ -24,16 +24,4 @@ CONTAINER=deploy-app
 MAX_RETRIES=5
 RETRY_INTERVAL=3
 
-# 版本记录文件路径，存当前版本和上一版本，回滚时知道退到哪
-# 放在「项目文件夹的上一级」，和项目文件夹并列
-# 用相对脚本位置的路径拼，不依赖 $HOME（sudo 下 $HOME 会变 /root）
-# 换服务器、换用户、换部署目录都不受影响
-#
-# ${BASH_SOURCE[0]} = config.sh 自己的绝对路径，如 /home/are/qqq/AutoDeploy-demo/deploy/config.sh
-# 第一个 %/* 去掉 /config.sh，得到 deploy 目录
-# 第二个 %/* 再去一层，得到项目目录（deploy 的上一级 = 项目）
-# 再 /.. 才到项目上一级（项目的上一级）
-#
-# 简化写法：${BASH_SOURCE[0]%/*/*} 直接去掉 deploy/config.sh 两层，得到项目目录
-# 再 /.. 到项目上一级
 VERSIONS_FILE="${BASH_SOURCE[0]%/*/*}/../AutoDeploy-demo部署更新日志"
