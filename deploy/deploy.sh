@@ -21,30 +21,38 @@ rollback() {
     # -f 强制：即使容器在运行也直接删，避免 rm 残留导致后面 run 时容器名冲突
     docker rm -f "$CONTAINER" 2>/dev/null || true
 
-    # 检查有没有上一版本可回滚
-    if [ -z "${PREVIOUS_VERSION:-}" ]; then
-        # 首次部署就挂了，没有历史版本，只能报错退出
+    # 检查有没有可回滚的版本
+    # 回滚目标是 CURRENT_VERSION（当前在跑的、已验证能用的版本），不是 PREVIOUS
+    # PREVIOUS 是更早的版本，current 才是「上一个成功版本」
+    if [ -z "${CURRENT_VERSION:-}" ]; then
+        # 首次部署就挂了，日志里没有 current，没有可回滚版本
         echo "✗ 无历史版本可回滚（首次部署失败），应用未上线"
         exit 1
     fi
 
-    echo "回滚到上一版本: ${IMAGE}:${PREVIOUS_VERSION}"
+    echo "回滚到上一版本: ${IMAGE}:${CURRENT_VERSION}"
     # 用上一版本镜像重新起容器
-    docker run -d --name "$CONTAINER" -p "${PORT}:${PORT}" "${IMAGE}:${PREVIOUS_VERSION}"
+    docker run -d --name "$CONTAINER" -p "${PORT}:${PORT}" "${IMAGE}:${CURRENT_VERSION}"
 
     # 回滚后也要健康检查，确认旧版本确实能起来（防回滚到坏版本）
     if bash "${BASH_SOURCE[0]%/*}/health_check.sh"; then
-        echo "✓ 回滚成功，已恢复到 ${PREVIOUS_VERSION}"
-        # 回滚成功后，current_version 应该变回 previous
-        echo "current=${PREVIOUS_VERSION}" > "$VERSIONS_FILE"
-        echo "previous=" >> "$VERSIONS_FILE"
+        echo "✓ 回滚成功，已恢复到 ${CURRENT_VERSION}"
+        # 写日志：current 保持回到的好版本，previous 清空（坏版本不留历史）
+        # 追加一行历史记录（# 开头，source 时被当注释跳过，不报错）
+        {
+            echo "current=${CURRENT_VERSION}"
+            echo "previous="
+        } > "$VERSIONS_FILE"
+        echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，已回滚到 ${CURRENT_VERSION}" >> "$VERSIONS_FILE"
         exit 1   # 仍然返回 1：虽然回滚了，但本次部署是失败的
     else
         echo "✗ 回滚后健康检查仍失败，旧版本也起不来，需人工介入"
-        # 回滚失败也写回版本记录，保持状态一致：
-        # current 仍指向失败的新版本（人工排查目标），previous 保留
-        echo "current=${NEW_VERSION}" > "$VERSIONS_FILE"
-        echo "previous=${PREVIOUS_VERSION}" >> "$VERSIONS_FILE"
+        # 回滚失败：记录失败的新版本，current 保留供人工排查
+        {
+            echo "current=${NEW_VERSION}"
+            echo "previous=${CURRENT_VERSION}"
+        } > "$VERSIONS_FILE"
+        echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，回滚也失败（旧版本起不来），需人工介入" >> "$VERSIONS_FILE"
         exit 1
     fi
 }
@@ -97,11 +105,14 @@ if bash "${BASH_SOURCE[0]%/*}/health_check.sh"; then
     # 健康检查通过 → 部署成功
     echo "✓ 部署成功: ${NEW_VERSION}"
 
-    # 更新版本记录：
-    # 现在的 current 挪到 previous（成功部署后，旧版变历史版）
-    # current 写刚部署成功的新版
-    echo "current=${NEW_VERSION}" > "$VERSIONS_FILE"
-    echo "previous=${CURRENT_VERSION}" >> "$VERSIONS_FILE"
+    # 写日志：current 更新为新版本，previous 挪到旧 current（旧版变历史版）
+    # 用 {} 块重定向一次性写两行，原子性好
+    {
+        echo "current=${NEW_VERSION}"
+        echo "previous=${CURRENT_VERSION}"
+    } > "$VERSIONS_FILE"
+    # 追加历史记录（# 开头注释，source 时跳过不报错）
+    echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署成功" >> "$VERSIONS_FILE"
 
     exit 0
 else
