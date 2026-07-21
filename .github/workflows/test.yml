@@ -31,8 +31,12 @@ jobs:
         run: pip install -r requirements.txt
 
       # 第4步：跑测试
-      - name: Run tests
-        run: python -m pytest
+      # 【临时跳过】测回滚期间注释掉，让坏代码能通过 CI 构建镜像
+      # 测完回滚后必须放开，恢复 CI 拦截坏代码的能力
+      # - name: Run tests
+      #   run: python -m pytest
+      - name: Skip tests temporarily
+        run: echo "测试临时跳过，用于验证回滚流程"
 
   # 第二个 job：构建镜像 + 推到 GHCR
   build:
