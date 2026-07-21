@@ -14,9 +14,9 @@ def root():
 @app.get("/health")
 def health():
     
-    return {"status": "ok"}          
+    # return {"status": "ok"}          
     
-    # raise Exception("模拟坏版本：运行时才暴露的问题")  
+    raise Exception("模拟坏版本：运行时才暴露的问题")  
 
  
 # 在最后一行，把 /metrics 自动挂上
