@@ -32,4 +32,8 @@ Thumbs.db
 # Docker 运行产物
 *.log
 
+# 部署运行时产物（服务器本地生成，不进仓库）
+deploy/deploy_history.log
+deploy/AutoDeploy-demo部署更新日志
+
 AutoDeploy规划/

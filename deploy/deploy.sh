@@ -22,6 +22,16 @@ source "${BASH_SOURCE[0]%/*}/config.sh"
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSIONS_FILE="${DEPLOY_DIR}/${VERSIONS_FILE}"
 
+# 部署流水日志：每次部署追加一条记录，纯给人看，脚本不读它
+# 和 VERSIONS_FILE 分开：版本状态文件只存 current/previous 给 source 用，保持精简
+# 这里留每次部署的完整流水（时间/版本/结果/回滚情况），不丢历史
+HISTORY_FILE="${DEPLOY_DIR}/deploy_history.log"
+
+# 追加一条流水记录的函数：参数1=结果(成功/失败回滚/回滚失败), 参数2=版本, 参数3=备注
+log_history() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ${1} | 版本=${2} | ${3}" >> "$HISTORY_FILE" || true
+}
+
 # 回滚函数：失败时调用，恢复到上一版本
 rollback() {
     echo "=== 开始回滚 ==="
@@ -36,6 +46,7 @@ rollback() {
     if [ -z "${current:-}" ]; then
         # 首次部署就挂了，日志里没有 current，没有可回滚版本
         echo "✗ 无历史版本可回滚（首次部署失败），应用未上线"
+        log_history "失败-无历史版本" "${NEW_VERSION}" "首次部署失败，无可回滚版本"
         exit 1
     fi
 
@@ -53,6 +64,7 @@ rollback() {
             echo "previous="
         } > "$VERSIONS_FILE"
         echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，已回滚到 ${current}" >> "$VERSIONS_FILE"
+        log_history "失败-已回滚" "${NEW_VERSION}" "回滚到 ${current}"
         exit 1   # 仍然返回 1：虽然回滚了，但本次部署是失败的
     else
         echo "✗ 回滚后健康检查仍失败，旧版本也起不来，需人工介入"
@@ -62,6 +74,7 @@ rollback() {
             echo "previous=${current}"
         } > "$VERSIONS_FILE"
         echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，回滚也失败（旧版本起不来），需人工介入" >> "$VERSIONS_FILE"
+        log_history "失败-回滚失败" "${NEW_VERSION}" "回滚到 ${current} 也失败，需人工介入"
         exit 1
     fi
 }
@@ -124,6 +137,7 @@ if bash "${BASH_SOURCE[0]%/*}/health_check.sh"; then
     } > "$VERSIONS_FILE"
     # 追加历史记录（# 开头注释，source 时跳过不报错）
     echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署成功" >> "$VERSIONS_FILE"
+    log_history "成功" "${NEW_VERSION}" "由 ${current:-无} 升级而来"
 
     exit 0
 else
