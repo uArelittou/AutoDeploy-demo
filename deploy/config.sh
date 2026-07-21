@@ -25,14 +25,9 @@ MAX_RETRIES=5
 RETRY_INTERVAL=3
 
 # 版本记录文件路径，存当前版本和上一版本，回滚时知道退到哪
-# 放在「项目文件夹的上一级」，和项目文件夹并列
-# 不依赖 $HOME（sudo 下 $HOME 会变 /root），换服务器/用户/目录都不受影响
-#
-# 问题：BASH_SOURCE[0] 在 source 时可能是相对路径（如 config.sh），%/*/* 展开会错
-# 解决：先 cd 到脚本所在目录再 pwd，拿到 deploy 的绝对路径
-#   $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) = deploy 目录的绝对路径
-#   例：/home/are/qqq/AutoDeploy-demo/deploy
-# 再 /../../ 上跳两级 = 项目上一级，例：/home/are/qqq
-# 最后拼上日志文件名
+# 放在项目根目录里（deploy 的上一级 = 项目目录）
+# 不放 git 追踪（.gitignore 里排除了），git pull 不冲突
+# $PWD 在 source 时是执行 deploy.sh 时的当前目录，不稳定，所以用脚本绝对路径推算
+# SCRIPT_DIR = deploy 目录绝对路径，/.. 上跳一级 = 项目根目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSIONS_FILE="${SCRIPT_DIR}/../../AutoDeploy-demo部署更新日志"
+VERSIONS_FILE="${SCRIPT_DIR}/../AutoDeploy-demo部署更新日志"
