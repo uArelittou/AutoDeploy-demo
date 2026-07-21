@@ -25,4 +25,8 @@ MAX_RETRIES=5
 RETRY_INTERVAL=3
 
 # 版本记录文件路径，存当前版本和上一版本，回滚时知道退到哪
-VERSIONS_FILE=versions.txt
+# 放在项目文件夹同级，不在 git 仓库里，避免 git pull 冲突
+# ${BASH_SOURCE[0]%/*} 是 deploy.sh 所在目录（项目内）
+# ${...%/*} 再往上一级就是项目文件夹的父目录（项目同级）
+# 文件名中文，更直观知道是啥
+VERSIONS_FILE="${BASH_SOURCE[0]%/*}/../AutoDeploy-demo部署更新日志"
