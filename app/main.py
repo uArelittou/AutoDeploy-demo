@@ -13,7 +13,8 @@ def root():
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    raise Exception("模拟坏版本，故意让健康检查失败")
+    # return {"status": "ok"}
 
 
 # 在最后一行，把 /metrics 自动挂上
