@@ -5,7 +5,7 @@ name: test
 on: [push]
 
 # 一个 workflow 由一个或多个 job 组成
-# job 之间可以并行或串行，这里只有一个 job
+# job 之间可以并行或串行，这里两个 job：test 跑测试，build 跑构建推送
 jobs:
   # job 的 ID，叫 test
   test:
@@ -16,13 +16,11 @@ jobs:
 
     # 一个 job 由多个 step 组成，按顺序执行
     steps:
-      # 第1步：拉代码。actions/checkout 是 GitHub 官方写好的 Action，
-      # 作用是把仓库代码 clone 到虚拟机上。不用它，后面的步骤找不到代码
+      # 第1步：拉代码
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 第2步：装 Python。指定 3.12 和你 Dockerfile 里的 python:3.12-slim 一致
-      # 为什么单独装：runner 默认带 Python，但版本可能不一致，显式指定避免玄学问题
+      # 第2步：装 Python 3.12（和 Dockerfile 一致）
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -35,3 +33,41 @@ jobs:
       # 第4步：跑测试
       - name: Run tests
         run: python -m pytest
+
+  # 第二个 job：构建镜像 + 推到 GHCR
+  build:
+    runs-on: ubuntu-latest
+    # needs: test 意思是「等 test job 跑完且成功后，我才开始」
+    # 如果测试失败，镜像就不会构建推送，避免推坏代码上线
+    needs: test
+
+    # 这个 job 推镜像到 registry，需要写权限
+    # GitHub 默认给 workflow 的 token 只有读权限，必须显式声明写权限
+    permissions:
+      contents: read
+      packages: write  # packages: write = 写 GHCR 镜像的权限
+
+    steps:
+      # 第1步：拉代码（每个 job 独立，必须重新拉一次）
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 第2步：登录 GHCR
+      # GITHUB_TOKEN 是 GitHub 自动给每个 workflow 注入的临时令牌，不用你手动配
+      # 作用域由上面的 permissions 块控制
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 第3步：构建并推送镜像
+      # 为什么要 lowercase：GHCR 镜像名必须全小写，但你的 GitHub 用户名可能有大写字母
+      # GITHUB_REPOSITORY=用户名/仓库名（如 uArelittou/AutoDeploy-demo）
+      # tr '[:upper:]' '[:lower:]' 把所有大写转小写，得到 uarelittou/auto-deploy-demo
+      - name: Build and push image
+        run: |
+          IMAGE=ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          docker build -t $IMAGE:latest .
+          docker push $IMAGE:latest
