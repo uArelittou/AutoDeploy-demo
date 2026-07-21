@@ -13,6 +13,13 @@ set -eo pipefail
 # 读配置
 source "${BASH_SOURCE[0]%/*}/config.sh"
 
+# 把 VERSIONS_FILE 补上脚本所在目录前缀
+# config.sh 里 VERSIONS_FILE 是纯文件名，这里拼成「deploy 目录/文件名」
+# ${BASH_SOURCE[0]%/*} = deploy.sh 所在目录（deploy），和上面 source config.sh 同逻辑
+# 这样无论从哪个工作目录执行 deploy.sh，日志都写到 deploy 目录里
+DEPLOY_DIR="${BASH_SOURCE[0]%/*}"
+VERSIONS_FILE="${DEPLOY_DIR}/${VERSIONS_FILE}"
+
 # 回滚函数：失败时调用，恢复到上一版本
 rollback() {
     echo "=== 开始回滚 ==="

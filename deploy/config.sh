@@ -21,13 +21,11 @@ CONTAINER=deploy-app
 # 连续探 MAX_RETRIES 次，每次间隔 RETRY_INTERVAL 秒
 # 全部失败才算应用挂了，触发回滚
 # 避免应用刚启动那几秒没就绪就误判挂了
-MAX_RETRIES=5
-RETRY_INTERVAL=3
+MAX_RETRIES=3
+RETRY_INTERVAL=2
 
 # 版本记录文件路径，存当前版本和上一版本，回滚时知道退到哪
-# 放在项目根目录里（deploy 的上一级 = 项目目录）
-# 不放 git 追踪（.gitignore 里排除了），git pull 不冲突
-# $PWD 在 source 时是执行 deploy.sh 时的当前目录，不稳定，所以用脚本绝对路径推算
-# SCRIPT_DIR = deploy 目录绝对路径，/.. 上跳一级 = 项目根目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSIONS_FILE="${SCRIPT_DIR}/../AutoDeploy-demo部署更新日志"
+# 放在 deploy 目录里（和脚本同目录），不拼路径，最简单可靠
+# 不放 git 追踪（.gitignore 里排除了 deploy/versions 部分），git pull 不冲突
+# deploy.sh 执行时工作目录可能任意，但脚本内部用相对脚本自身路径访问同目录文件
+VERSIONS_FILE="AutoDeploy-demo部署更新日志"
