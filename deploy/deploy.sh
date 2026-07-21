@@ -17,7 +17,7 @@ source "${BASH_SOURCE[0]%/*}/config.sh"
 # config.sh 里 VERSIONS_FILE 是纯文件名，这里拼成「deploy 目录/文件名」
 # 注意：不能用 ${BASH_SOURCE[0]%/*}，当以 ./deploy.sh 或 deploy.sh 方式调用时
 #       BASH_SOURCE[0] 不含 /，%/* 切不出目录，会拼成 ./deploy.sh/文件名 的错误路径
-#       导致 source 失败、CURRENT_VERSION 读不到、回滚误判无历史版本
+#       导致 source 失败、current 读不到、回滚误判无历史版本
 # 用 cd + $PWD 拿到脚本所在目录的绝对路径，无论怎么调用都稳定
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSIONS_FILE="${DEPLOY_DIR}/${VERSIONS_FILE}"
@@ -31,35 +31,35 @@ rollback() {
     docker rm -f "$CONTAINER" 2>/dev/null || true
 
     # 检查有没有可回滚的版本
-    # 回滚目标是 CURRENT_VERSION（当前在跑的、已验证能用的版本），不是 PREVIOUS
-    # PREVIOUS 是更早的版本，current 才是「上一个成功版本」
-    if [ -z "${CURRENT_VERSION:-}" ]; then
+    # 回滚目标是 current（当前在跑的、已验证能用的版本），不是 previous
+    # previous 是更早的版本，current 才是「上一个成功版本」
+    if [ -z "${current:-}" ]; then
         # 首次部署就挂了，日志里没有 current，没有可回滚版本
         echo "✗ 无历史版本可回滚（首次部署失败），应用未上线"
         exit 1
     fi
 
-    echo "回滚到上一版本: ${IMAGE}:${CURRENT_VERSION}"
+    echo "回滚到上一版本: ${IMAGE}:${current}"
     # 用上一版本镜像重新起容器
-    docker run -d --name "$CONTAINER" -p "${PORT}:${PORT}" "${IMAGE}:${CURRENT_VERSION}"
+    docker run -d --name "$CONTAINER" -p "${PORT}:${PORT}" "${IMAGE}:${current}"
 
     # 回滚后也要健康检查，确认旧版本确实能起来（防回滚到坏版本）
     if bash "${BASH_SOURCE[0]%/*}/health_check.sh"; then
-        echo "✓ 回滚成功，已恢复到 ${CURRENT_VERSION}"
+        echo "✓ 回滚成功，已恢复到 ${current}"
         # 写日志：current 保持回到的好版本，previous 清空（坏版本不留历史）
         # 追加一行历史记录（# 开头，source 时被当注释跳过，不报错）
         {
-            echo "current=${CURRENT_VERSION}"
+            echo "current=${current}"
             echo "previous="
         } > "$VERSIONS_FILE"
-        echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，已回滚到 ${CURRENT_VERSION}" >> "$VERSIONS_FILE"
+        echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，已回滚到 ${current}" >> "$VERSIONS_FILE"
         exit 1   # 仍然返回 1：虽然回滚了，但本次部署是失败的
     else
         echo "✗ 回滚后健康检查仍失败，旧版本也起不来，需人工介入"
         # 回滚失败：记录失败的新版本，current 保留供人工排查
         {
             echo "current=${NEW_VERSION}"
-            echo "previous=${CURRENT_VERSION}"
+            echo "previous=${current}"
         } > "$VERSIONS_FILE"
         echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署失败，回滚也失败（旧版本起不来），需人工介入" >> "$VERSIONS_FILE"
         exit 1
@@ -79,10 +79,12 @@ echo "=== 部署新版本: ${IMAGE}:${NEW_VERSION} ==="
 #   current=旧版本
 #   previous=更旧的版本
 if [ -f "$VERSIONS_FILE" ]; then
-    source "$VERSIONS_FILE"   # 读进 CURRENT_VERSION 和 PREVIOUS_VERSION
+    source "$VERSIONS_FILE"   # 读进 current 和 previous（小写，和日志文件里的 key 一致）
+    # 注意大小写：日志文件写的是 current=/previous=（小写），
+    # source 进来的变量就是小写 current/previous，脚本里也必须用小写读，否则读不到
 else
-    CURRENT_VERSION=""
-    PREVIOUS_VERSION=""
+    current=""
+    previous=""
 fi
 
 # 3. 拉最新镜像（latest 是 GHCR 上最新的构建产物）
@@ -118,7 +120,7 @@ if bash "${BASH_SOURCE[0]%/*}/health_check.sh"; then
     # 用 {} 块重定向一次性写两行，原子性好
     {
         echo "current=${NEW_VERSION}"
-        echo "previous=${CURRENT_VERSION}"
+        echo "previous=${current}"
     } > "$VERSIONS_FILE"
     # 追加历史记录（# 开头注释，source 时跳过不报错）
     echo "# [$(date '+%Y-%m-%d %H:%M:%S')] 版本 ${NEW_VERSION} 部署成功" >> "$VERSIONS_FILE"
