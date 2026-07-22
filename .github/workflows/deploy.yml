@@ -24,5 +24,4 @@ jobs:
             cd /home/are/qqq/AutoDeploy-demo
             git pull
             cd deploy
-            sudo ./deploy.sh
-            
+            sudo ./deploy.sh 
