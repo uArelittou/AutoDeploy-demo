@@ -1,0 +1,27 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["test"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ SERVER_HOST }}
+          username: ${{ SERVER_USERNAME }}
+          password: ${{ SERVER_PASSWORD }}
+          port: ${{ SERVER_PORT }}
+          script: |
+            cd /home/are/qqq/AutoDeploy-demo
+            git pull
+            cd deploy
+            sudo ./deploy.sh

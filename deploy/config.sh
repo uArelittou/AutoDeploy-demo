@@ -28,4 +28,4 @@ RETRY_INTERVAL=2
 # 放在 deploy 目录里（和脚本同目录），不拼路径，最简单可靠
 # 不放 git 追踪（.gitignore 里排除了 deploy/versions 部分），git pull 不冲突
 # deploy.sh 执行时工作目录可能任意，但脚本内部用相对脚本自身路径访问同目录文件
-VERSIONS_FILE="AutoDeploy-demo部署更新日志"
+VERSIONS_FILE="AutoDeploy-demo_rollback"
