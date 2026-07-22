@@ -22,6 +22,7 @@ jobs:
           port: ${{ secrets.SERVER_PORT }}
           script: |
             cd /home/are/qqq/AutoDeploy-demo
+            git stash 
             git pull
             cd deploy
             sudo ./deploy.sh 
