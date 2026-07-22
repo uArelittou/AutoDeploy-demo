@@ -26,3 +26,5 @@ jobs:
             git pull
             cd deploy
             sudo ./deploy.sh 
+
+            
