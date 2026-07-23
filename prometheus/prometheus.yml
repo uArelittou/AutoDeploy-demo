@@ -1,0 +1,52 @@
+# ==========================================
+# 全局配置 (Global Config)
+# ==========================================
+global:
+  scrape_interval: 15s      # 抓取间隔：每 15 秒拉取一次数据
+  evaluation_interval: 15s  # 评估间隔：每 15 秒计算一次告警规则
+  scrape_timeout: 10s       # 抓取超时：超过 10 秒未拉取到数据则作废
+
+# ==========================================
+# 告警配置 (Alerting Config) - 暂不开启
+# ==========================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - localhost:9093  # 安装 Alertmanager 后取消注释
+
+# ==========================================
+# 告警规则文件路径 (Rule Files) - 暂不开启
+# ==========================================
+rule_files:
+  # - "alert_rules.yml"     # 后续可配置具体的告警条件
+
+# ==========================================
+# 抓取任务配置 (Scrape Configs) - 核心部分
+# ==========================================
+scrape_configs:
+
+  # 任务 1：监控 Prometheus 自身状态
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          role: "monitor-center"    # 标签：监控中心
+
+  # 任务 2：监控 测试用的脚本服务 
+  
+  - job_name: "demo-app"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:8044"]
+
+
+      # 后续添加新机器按以下格式：
+      # - targets: ["192.168.1.100:9100"]
+      #   labels:
+      #     env: "prod"
+      #     hostname: "web-server-01"
+
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
