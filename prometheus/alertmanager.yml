@@ -1,0 +1,20 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: email
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 4h
+
+receivers:
+  - name: email
+    email_configs:
+      - to: 'arelittouwu@gmail.com'
+        from: 'Prometheus Alert <arelittouwu@gmail.com>'
+        smarthost: 'smtp.gmail.com:465'
+        auth_username: 'arelittouwu@gmail.com'
+        auth_password_file: '/etc/alertmanager/gmail-app-password.txt'
+        require_tls: false
+        force_implicit_tls: true
+        send_resolved: true

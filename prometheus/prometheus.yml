@@ -7,19 +7,18 @@ global:
   scrape_timeout: 10s       # 抓取超时：超过 10 秒未拉取到数据则作废
 
 # ==========================================
-# 告警配置 (Alerting Config) - 暂不开启
+# 告警配置 (Alerting Config) -
 # ==========================================
 alerting:
   alertmanagers:
     - static_configs:
-        - targets:
-          # - localhost:9093  # 安装 Alertmanager 后取消注释
+        - targets: ["alertmanager:9093"]
 
 # ==========================================
 # 告警规则文件路径 (Rule Files) - 暂不开启
 # ==========================================
 rule_files:
-  # - "alert_rules.yml"     # 后续可配置具体的告警条件
+  - /etc/prometheus/rules/*.yml   # 后续可配置具体的告警条件
 
 # ==========================================
 # 抓取任务配置 (Scrape Configs) - 核心部分

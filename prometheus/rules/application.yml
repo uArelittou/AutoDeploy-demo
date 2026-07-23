@@ -1,0 +1,11 @@
+groups:
+  - name: demo-app-alerts
+    rules:
+      - alert: DemoAppDown
+        expr: up{job="demo-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Demo app is down"
+          description: "demo-app has been unavailable for more than one minute."
